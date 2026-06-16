@@ -1,1 +1,164 @@
-# task-manager-api
+# Task Manager API
+
+A simple REST API for managing tasks, built with **FastAPI** and backed by a **MySQL** database hosted on **Aiven**. Supports full CRUD operations: create, read, update, and delete tasks.
+
+## Features
+
+- Create, retrieve, update, and delete tasks
+- Each task has a title, deadline, and status
+- MySQL database connection secured over SSL using Aiven's CA certificate
+- Clear error handling for duplicate IDs, missing tasks, and database failures
+
+## Tech Stack
+
+- **FastAPI** – web framework
+- **MySQL Connector/Python** – database driver
+- **Pydantic** – request/response validation
+- **python-dotenv** – environment variable management
+- **Aiven** – managed MySQL hosting
+
+## Project Structure
+
+```
+task-manager-api/
+├── fasti.py          # FastAPI app and route definitions
+├── fasti.env        # Environment variables (NOT committed — contains your password)
+├── ca.pem           # Aiven CA certificate (committed — no secret data, needed for SSL)
+├── requirements.txt
+├── .gitignore       # Should include fasti.env
+└── README.md
+```
+
+## Prerequisites
+
+- Python 3.9+
+- A MySQL database (e.g. an Aiven MySQL service)
+- The Aiven CA certificate (`ca.pem`) for your database
+
+## Setup
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/<your-username>/task-manager-api.git
+   cd task-manager-api
+   ```
+
+2. **Create a virtual environment and install dependencies**
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate   # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+3. **Add your environment file**
+
+   Create a file named `fasti.env` in the project root with the following variables:
+
+   ```env
+   DB_HOST=your-aiven-host.aivencloud.com
+   DB_NAME=Task_Manager
+   DB_USER=avnadmin
+   DB_PASSWORD=your_actual_password_here
+   DB_PORT=13912
+   ```
+
+4. **Add the CA certificate**
+
+   Download your Aiven MySQL CA certificate and save it as `ca.pem` in the project root (same folder as `fasti.py`).
+
+   > ⚠️ **Never commit `fasti.env` or `ca.pem` to version control.** Add them to `.gitignore`.
+
+5. **Run the app**
+
+   ```bash
+   uvicorn fasti:app --reload
+   ```
+
+   The API will be available at `http://127.0.0.1:8000`. Interactive docs are available at `http://127.0.0.1:8000/docs`.
+
+## Database Schema
+
+The API expects a `Tasks` table with the following structure:
+
+| Column     | Type    | Notes              |
+|------------|---------|---------------------|
+| id         | INT     | Primary key         |
+| title      | VARCHAR | Task title           |
+| deadline   | VARCHAR | Task deadline (date/string) |
+| status     | VARCHAR | Task status (e.g. pending, done) |
+
+## API Endpoints
+
+| Method | Endpoint            | Description              |
+|--------|----------------------|----------------------------|
+| POST   | `/tasks`             | Create a new task          |
+| GET    | `/tasks`             | Get all tasks               |
+| GET    | `/tasks/{task_id}`   | Get a single task by ID     |
+| PUT    | `/tasks/{task_id}`   | Update a task by ID         |
+| DELETE | `/tasks/{task_id}`   | Delete a task by ID         |
+
+### Example: Create a task
+
+```bash
+curl -X POST http://127.0.0.1:8000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"id": 1, "title": "Write README", "deadline": "2026-06-20", "status": "pending"}'
+```
+
+### Example: Get all tasks
+
+```bash
+curl http://127.0.0.1:8000/tasks
+```
+
+### Example: Update a task
+
+```bash
+curl -X PUT http://127.0.0.1:8000/tasks/1 \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Write README", "deadline": "2026-06-21", "status": "done"}'
+```
+
+### Example: Delete a task
+
+```bash
+curl -X DELETE http://127.0.0.1:8000/tasks/1
+```
+
+## Notes
+
+- Errors return standard HTTP status codes: `404` for missing tasks, `409` for duplicate IDs on creation, and `500` for database errors.
+- This project does not include authentication; consider adding it before deploying publicly.
+
+## Deploying to Render
+
+This app can be deployed as a Render **Web Service**, connected directly to this GitHub repo.
+
+1. **Push your code to GitHub**, including `requirements.txt` and `ca.pem`. The CA certificate is not a secret (it has no private key) so it's fine to commit. Do **not** commit `fasti.env` — that contains your real database password.
+
+2. **Create a new Web Service on Render**
+   - Connect this GitHub repository.
+   - Build command: `pip install -r requirements.txt`
+   - Start command: `uvicorn fasti:app --host 0.0.0.0 --port $PORT`
+
+3. **Set environment variables in Render's dashboard** (Environment tab), using the same names as in `fasti.env`:
+
+   ```
+   DB_HOST=your-aiven-host.aivencloud.com
+   DB_NAME=Task_Manager
+   DB_USER=avnadmin
+   DB_PASSWORD=your_actual_password_here
+   DB_PORT=13912
+   ```
+
+   Render injects these directly into the running container — `load_dotenv()` in the code simply does nothing if `fasti.env` isn't present, so no code changes are needed.
+
+4. **Deploy.** Render will build and start the service, and your API will be available at the URL Render assigns (e.g. `https://task-manager-api.onrender.com`).
+
+5. **Database access:** make sure your Aiven MySQL instance allows connections from Render (Aiven typically allows connections from any IP by default unless you've set an IP allowlist — check this under your Aiven service's "Overview" or "Connection pool" settings if the deploy can't reach the database).
+
+## License
+
+No license specified.
