@@ -1,14 +1,3 @@
-"""
-FastAPI CRUD service for managing Tasks, backed by MySQL (Aiven).
-
-Required environment variables (in fasti.env next to this file):
-    DB_HOST      = mysql-1cf54b65-silkytanwar4-a112.c.aivencloud.com
-    DB_NAME      = Task_Manager
-    DB_USER      = avnadmin
-    DB_PASSWORD  = your_actual_password_here
-    DB_PORT      = 13912
-"""
-
 from contextlib import contextmanager
 from pathlib import Path
 import os
@@ -49,7 +38,7 @@ except ValueError as exc:
     raise RuntimeError(f"DB_PORT must be an integer, got {_DB_PORT_RAW!r}") from exc
 
 
-# --- Database helpers ----------------------------------------------------
+# --- Database ----------------------------------------------------
 
 @contextmanager
 def get_connection():
@@ -84,7 +73,7 @@ class TaskUpdate(BaseModel):
     status: str
 
 
-# --- App -----------------------------------------------------------------
+# --- app -----------------------------------------------------------------
 
 app = FastAPI()
 
