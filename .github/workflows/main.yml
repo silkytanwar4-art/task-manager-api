@@ -1,0 +1,44 @@
+name: CI Check
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check required files exist
+        run: |
+          test -f fasti.py
+          test -f requirements.txt
+          test -f ca.pem
+          echo "All required files present."
+
+      - name: Check Python syntax
+        run: python -m py_compile fasti.py
+
+      - name: Start app and test endpoint
+        run: |
+          uvicorn fasti:app --host 0.0.0.0 --port 8000 &
+          sleep 5
+          curl -f http://127.0.0.1:8000/tasks || (echo "App failed to respond" && exit 1)
